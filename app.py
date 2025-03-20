@@ -6,7 +6,6 @@ app = Flask(__name__)
 # Initialize the database with Apple products and a hidden flag
 def init_db():
     conn = sqlite3.connect('apple_products.db')
-
     c = conn.cursor()
 
     c.execute('''CREATE TABLE IF NOT EXISTS apple_products (
@@ -26,7 +25,6 @@ def init_db():
     c.execute("INSERT OR IGNORE INTO apple_products (id, name, serial_number) VALUES (4, 'Apple Watch Series 9', 'SN4567890123')")
     c.execute("INSERT OR IGNORE INTO apple_products (id, name, serial_number) VALUES (5, 'AirPods Pro', 'SN5678901234')")
     # Insert the flag into the secrets table
-
     c.execute("INSERT OR IGNORE INTO secret_products (id, name, secret_serial_number) VALUES (0, 'Secret Product', 'CTF{SQL_1nj3cti0n}')")
     conn.commit()
     conn.close()
@@ -42,67 +40,114 @@ def home():
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <title>Apple Vault</title>
+            <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
             <style>
                 body {
-                    font-family: Arial, sans-serif;
-                    background-color: #f4f4f4;
-                    text-align: center;
-                    padding: 50px;
+                    font-family: 'Poppins', sans-serif;
+                    background: linear-gradient(135deg, #f5f7fa, #c3cfe2);
+                    margin: 0;
+                    padding: 0;
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    height: 100vh;
+                    flex-direction: column;
                 }
                 h1 {
                     color: #333;
+                    font-size: 2.5rem;
+                    margin-bottom: 20px;
+                    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+                }
+                .container {
+                    background: white;
+                    padding: 40px;
+                    border-radius: 15px;
+                    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+                    max-width: 500px;
+                    width: 100%;
+                    text-align: center;
                 }
                 form {
-                    margin: 20px auto;
-                    width: 300px;
+                    margin: 20px 0;
                 }
                 input[type="text"] {
-                    width: 100%;
-                    padding: 10px;
+                    width: 80%;
+                    padding: 12px;
                     margin: 10px 0;
-                    border: 1px solid #ccc;
-                    border-radius: 5px;
+                    border: 2px solid #ddd;
+                    border-radius: 8px;
+                    font-size: 16px;
+                    transition: border-color 0.3s ease;
+                }
+                input[type="text"]:focus {
+                    border-color: #007bff;
+                    outline: none;
                 }
                 input[type="submit"] {
                     background-color: #007bff;
                     color: white;
-                    padding: 10px 20px;
+                    padding: 12px 24px;
                     border: none;
-                    border-radius: 5px;
+                    border-radius: 8px;
+                    font-size: 16px;
                     cursor: pointer;
+                    transition: background-color 0.3s ease;
                 }
                 input[type="submit"]:hover {
                     background-color: #0056b3;
                 }
                 table {
                     margin: 20px auto;
-                    width: 50%;
+                    width: 100%;
                     border-collapse: collapse;
                     text-align: left;
+                    background: white;
+                    border-radius: 8px;
+                    overflow: hidden;
+                    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
                 }
                 th, td {
-                    padding: 10px;
-                    border: 1px solid #ccc;
+                    padding: 12px;
+                    border-bottom: 1px solid #ddd;
                 }
                 th {
                     background-color: #007bff;
                     color: white;
                 }
+                tr:hover {
+                    background-color: #f1f1f1;
+                }
                 .hint {
                     color: #666;
                     font-style: italic;
                     margin-top: 20px;
+                    font-size: 14px;
+                }
+                .error {
+                    color: red;
+                    margin-top: 20px;
+                }
+                a {
+                    color: #007bff;
+                    text-decoration: none;
+                    transition: color 0.3s ease;
+                }
+                a:hover {
+                    color: #0056b3;
                 }
             </style>
         </head>
         <body>
-            <h1>Welcome to the Apple</h1>
-            <p>Search for Apple products in our database. Rumor has it that there's a <strong>Apple's secret product</strong> in the system. Can you find?</p>
-            <form method="GET" action="/search">
-                <input type="text" name="query" placeholder="Enter Apple product name" required>
-                <input type="submit" value="Search">
-            </form>
-            <p class="hint">Hint: What happens if you search for <code>' OR '1'='1</code>?</p>
+            <div class="container">
+                <h2>Welcome to the Apple Vault</h2>
+                <p>Search for Apple products in our database. Rumor has it that there's a <strong>Apple's secret product</strong> in the system. Can you find it?</p>
+                <form method="GET" action="/search">
+                    <input type="text" name="query" placeholder="Enter Apple product name" required>
+                    <input type="submit" value="Search">
+                </form>
+                <p class="hint">Hint: What happens if you search for <code>' OR '1'='1</code>?</p>
+            </div>
         </body>
         </html>
     '''
@@ -131,36 +176,69 @@ def search():
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <title>Search Results</title>
+            <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
             <style>
                 body {
-                    font-family: Arial, sans-serif;
-                    background-color: #f4f4f4;
+                    font-family: 'Poppins', sans-serif;
+                    background: linear-gradient(135deg, #f5f7fa, #c3cfe2);
+                    margin: 0;
+                    padding: 0;
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    height: 100vh;
+                    flex-direction: column;
+                }
+                .container {
+                    background: white;
+                    padding: 40px;
+                    border-radius: 15px;
+                    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+                    max-width: 800px;
+                    width: 100%;
                     text-align: center;
-                    padding: 50px;
                 }
                 table {
                     margin: 20px auto;
-                    width: 50%;
+                    width: 100%;
                     border-collapse: collapse;
                     text-align: left;
+                    background: white;
+                    border-radius: 8px;
+                    overflow: hidden;
+                    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
                 }
                 th, td {
-                    padding: 10px;
-                    border: 1px solid #ccc;
+                    padding: 12px;
+                    border-bottom: 1px solid #ddd;
                 }
                 th {
                     background-color: #007bff;
                     color: white;
                 }
+                tr:hover {
+                    background-color: #f1f1f1;
+                }
                 .error {
                     color: red;
+                    margin-top: 20px;
+                }
+                a {
+                    color: #007bff;
+                    text-decoration: none;
+                    transition: color 0.3s ease;
+                }
+                a:hover {
+                    color: #0056b3;
                 }
             </style>
         </head>
         <body>
-            <h1>Search Results</h1>
-            {{ output | safe }}
-            <p><a href="/">Back to Search</a></p>
+            <div class="container">
+                <h1>Search Results</h1>
+                {{ output | safe }}
+                <p><a href="/">Back to Search</a></p>
+            </div>
         </body>
         </html>
     ''', output=output)
