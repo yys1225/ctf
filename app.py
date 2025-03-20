@@ -1,184 +1,169 @@
-from flask import Flask, request, render_template_string, redirect, url_for
+from flask import Flask, request, render_template_string
+import sqlite3
 
 app = Flask(__name__)
 
-# SQLite database setup
-import sqlite3
-conn = sqlite3.connect('ctf.db', check_same_thread=False)
-cursor = conn.cursor()
+# Initialize the database with Apple products and a hidden flag
+def init_db():
+    conn = sqlite3.connect('apple_products.db')
 
-# Create a users table
-cursor.execute('''CREATE TABLE IF NOT EXISTS users (
+    c = conn.cursor()
+
+    c.execute('''CREATE TABLE IF NOT EXISTS apple_products (
                     id INTEGER PRIMARY KEY,
-                    username TEXT,
-                    password TEXT)''')
-conn.commit()
+                    name TEXT NOT NULL,
+                    serial_number TEXT NOT NULL
+                )''')
+    c.execute('''CREATE TABLE IF NOT EXISTS secret_products (
+                    id INTEGER PRIMARY KEY,
+                    name TEXT NOT NULL,
+                    secret_serial_number TEXT NOT NULL
+                )''')
+    # Insert sample Apple products with serial numbers
+    c.execute("INSERT OR IGNORE INTO apple_products (id, name, serial_number) VALUES (1, 'iPhone 15', 'SN1234567890')")
+    c.execute("INSERT OR IGNORE INTO apple_products (id, name, serial_number) VALUES (2, 'MacBook Air M2', 'SN2345678901')")
+    c.execute("INSERT OR IGNORE INTO apple_products (id, name, serial_number) VALUES (3, 'iPad Pro', 'SN3456789012')")
+    c.execute("INSERT OR IGNORE INTO apple_products (id, name, serial_number) VALUES (4, 'Apple Watch Series 9', 'SN4567890123')")
+    c.execute("INSERT OR IGNORE INTO apple_products (id, name, serial_number) VALUES (5, 'AirPods Pro', 'SN5678901234')")
+    # Insert the flag into the secrets table
 
-# Add a sample admin user
-cursor.execute("INSERT OR IGNORE INTO users (username, password) VALUES ('admin', 'str0ng_passw0rd')")
-conn.commit()
+    c.execute("INSERT OR IGNORE INTO secret_products (id, name, secret_serial_number) VALUES (0, 'Secret Product', 'CTF{SQL_1nj3cti0n}')")
+    conn.commit()
+    conn.close()
+
+init_db()
 
 @app.route('/')
-def login_page(error=None):
-    return render_template_string('''
+def home():
+    return '''
         <!DOCTYPE html>
         <html lang="en">
         <head>
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Login</title>
+            <title>Apple Vault</title>
             <style>
                 body {
                     font-family: Arial, sans-serif;
                     background-color: #f4f4f4;
-                    display: flex;
-                    justify-content: center;
-                    align-items: center;
-                    height: 100vh;
-                    margin: 0;
-                }
-                .login-container {
-                    background-color: #fff;
-                    padding: 20px;
-                    border-radius: 8px;
-                    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
                     text-align: center;
+                    padding: 50px;
+                }
+                h1 {
+                    color: #333;
+                }
+                form {
+                    margin: 20px auto;
                     width: 300px;
                 }
-                .login-container h1 {
-                    margin-bottom: 20px;
-                }
-                .login-container input[type="text"],
-                .login-container input[type="password"] {
-                    width: 80%;
+                input[type="text"] {
+                    width: 100%;
                     padding: 10px;
                     margin: 10px 0;
                     border: 1px solid #ccc;
-                    border-radius: 4px;
+                    border-radius: 5px;
                 }
-                .login-container input[type="submit"] {
-                    width: 50%;
-                    padding: 10px;
-                    background-color: #28a745;
+                input[type="submit"] {
+                    background-color: #007bff;
                     color: white;
+                    padding: 10px 20px;
                     border: none;
-                    border-radius: 4px;
+                    border-radius: 5px;
                     cursor: pointer;
                 }
-                .login-container input[type="submit"]:hover {
-                    background-color: #218838;
+                input[type="submit"]:hover {
+                    background-color: #0056b3;
                 }
-                .error-message {
-                    color: red;
-                    margin-top: 10px;
+                table {
+                    margin: 20px auto;
+                    width: 50%;
+                    border-collapse: collapse;
+                    text-align: left;
+                }
+                th, td {
+                    padding: 10px;
+                    border: 1px solid #ccc;
+                }
+                th {
+                    background-color: #007bff;
+                    color: white;
                 }
                 .hint {
-                    font-size: 12px;
                     color: #666;
-                    margin-top: 10px;
+                    font-style: italic;
+                    margin-top: 20px;
                 }
             </style>
         </head>
         <body>
-            <div class="login-container">
-                <h1>Login</h1>
-                                  
-                <form method="POST" action="/login">
-                                  <p>Login as admin to get the flag.</p>
-                    <input type="text" name="username" placeholder="Username" required><br>
-                    <input type="password" name="password" placeholder="Password" required><br>
-                        <div class="hint">
-                            
-                            <p>Hint: Think about how SQL queries are constructed.</p>
-                            <p>What happens if you input something unexpected?</p>
-                         </div>
-                    <input type="submit" value="Submit">
-                </form>
-
-                {% if error %}
-                    <div class="error-message">{{ error }}</div>
-                {% endif %}
-            </div>
+            <h1>Welcome to the Apple</h1>
+            <p>Search for Apple products in our database. Rumor has it that there's a <strong>Apple's secret product</strong> in the system. Can you find?</p>
+            <form method="GET" action="/search">
+                <input type="text" name="query" placeholder="Enter Apple product name" required>
+                <input type="submit" value="Search">
+            </form>
+            <p class="hint">Hint: What happens if you search for <code>' OR '1'='1</code>?</p>
         </body>
         </html>
-    ''', error=error)
+    '''
 
-@app.route('/login', methods=['POST'])
-def login():
-    username = request.form['username']
-    password = request.form['password']
-
-    # Check if the username exists
-    cursor.execute(f"SELECT * FROM users WHERE username='{username}'")
-    user = cursor.fetchone()
-
-    if user:
-        # Check if the password is correct
-        cursor.execute(f"SELECT * FROM users WHERE username='{username}' AND password='{password}'")
-        user = cursor.fetchone()
-        if user:
-            if user[1] == 'admin':
-                # Redirect to the /flag route for admin
-                return redirect(url_for('flag', role='admin'))
-            else:
-                # Redirect to the /flag route for regular users
-                return redirect(url_for('flag', role='user'))
-        else:
-            # Password is incorrect
-            return login_page(error="Invalid password. Please try again.")
-    else:
-        # Username does not exist
-        return login_page(error="Invalid username. Please try again.")
-
-@app.route('/flag')
-def flag():
-    role = request.args.get('role', 'user')  # Default to 'user' if role is not provided
-    username = request.args.get('username', 'guest')  # Default to 'guest' if username is not provided
-
-    if role == 'admin':
-        message = f"Welcome!\n\nFlag: CTF{{SQL1nj3ct10n}}"
-    else:
-        message = f"Welcome!"
-
+@app.route('/search')
+def search():
+    query = request.args.get('query', '')
+    conn = sqlite3.connect('apple_products.db')
+    c = conn.cursor()
+    try:
+        # Vulnerable SQL query
+        sql = f"SELECT id, name, serial_number FROM apple_products WHERE name LIKE '%{query}%'"
+        c.execute(sql)
+        results = c.fetchall()
+        output = "<table><tr><th>ID</th><th>Name</th><th>Serial Number</th></tr>"
+        for row in results:
+            output += f"<tr><td>{row[0]}</td><td>{row[1]}</td><td>{row[2]}</td></tr>"
+        output += "</table>"
+    except Exception as e:
+        output = f"<div class='error'>Error: {str(e)}</div>"
+    conn.close()
     return render_template_string('''
         <!DOCTYPE html>
         <html lang="en">
         <head>
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Flag</title>
+            <title>Search Results</title>
             <style>
                 body {
                     font-family: Arial, sans-serif;
-                    font-size: 8px;
                     background-color: #f4f4f4;
-                    display: flex;
-                    justify-content: center;
-                    align-items: center;
-                    height: 100vh;
-                    margin: 0;
-                }
-                .message-container {
-                    background-color: #fff;
-                    padding: 30px;
-                    border-radius: 8px;
-                    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
                     text-align: center;
-                    width: 300px;
-                    white-space: pre-wrap;
+                    padding: 50px;
                 }
-                .message-container h1 {
-                    margin-bottom: 20px;
+                table {
+                    margin: 20px auto;
+                    width: 50%;
+                    border-collapse: collapse;
+                    text-align: left;
+                }
+                th, td {
+                    padding: 10px;
+                    border: 1px solid #ccc;
+                }
+                th {
+                    background-color: #007bff;
+                    color: white;
+                }
+                .error {
+                    color: red;
                 }
             </style>
         </head>
         <body>
-            <div class="message-container">
-                <h1>{{ message }}</h1>
-            </div>
+            <h1>Search Results</h1>
+            {{ output | safe }}
+            <p><a href="/">Back to Search</a></p>
         </body>
         </html>
-    ''', message=message)
+    ''', output=output)
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=8000)
+    app.run(host='0.0.0.0', port=5000)
